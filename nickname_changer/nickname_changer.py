@@ -4,7 +4,8 @@ import discord
 import asyncio
 from datetime import datetime
 import unicodedata
-from io import StringIO
+import aiohttp
+
 
 
 class NameChanger:
@@ -61,7 +62,7 @@ contain special characters."""
                         except commands.MissingPermissions:
                             pass
                         counter += 1
-                        if changed_users == "":
+            if changed_users == "":
                 link = await self.mystbin(stringx="No users with special characters in their nicknames could be found.")
             else:
                 link = await self.mystbin(stringx=f"Found {counter} members:\n{changed_users}")
@@ -76,18 +77,13 @@ contain special characters."""
                 timestamp=datetime.utcnow()
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
-            if ctx.message.channel.permissions_for(ctx.me).attach_files and output == "channel":
-                await ctx.send(embed=embed, file=file)
+            if output == "channel":
+                await ctx.send(embed=embed)
             else:
                 if output == "channel":
                     await ctx.send(embed=embed)
                 else:
                     await ctx.message.author(embed=embed)
-                try:
-                    await ctx.message.author.send(content="Here is a list with all changes made:", file=file)
-                except Exception:
-                    await ctx.send("I couldn't send the list with the changes. Please make sure I can either attach"
-                                   " files in the channel you use the command in or that I can send you DMs.")
         else:
             # only returns the list
             await ctx.send("Okay. I will create a file now with all users who have special characters in their name.")
@@ -107,7 +103,7 @@ contain special characters."""
             if changed_users == "":
                 link = await self.mystbin(stringx="No users with special characters in their nicknames could be found.")
             else:
-                link = await self.mystbin(stringx=f"Found {counter} members:\n{changed_users}")
+                link = await self.mystbin(stringx=f"Found {counter_} members:\n{changed_users}")
             embed = discord.Embed(
                 color=discord.Color.green(),
                 timestamp=datetime.utcnow(),
@@ -176,7 +172,7 @@ contain special characters."""
 
     @setnick_cmd.error
     async def setnick_error(self, ctx, error):
-    #error handler
+    # error handler
         if isinstance(error, commands.CheckFailure):
             return
         elif isinstance(error, commands.NoPrivateMessage):
@@ -202,5 +198,5 @@ contain special characters."""
     async def mystbin(stringx):
         async with aiohttp.ClientSession() as session:
             async with session.post("http://mystb.in/documents", data=stringx.encode('utf-8')) as post:
-                post = await post.json()
+                post = await post.json()      
         return f"http://mystb.in/{post['key']}.txt"
