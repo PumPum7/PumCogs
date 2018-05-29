@@ -61,22 +61,18 @@ contain special characters."""
                         except commands.MissingPermissions:
                             pass
                         counter += 1
-            stringio = StringIO()
-            text = f'List with all users with special characters in their username/nickname:\nFound {counter} members:' \
-                   f'\n{changed_users}'.replace("\n", "\r\n")
-            stringio.seek(0, 2)
-            stringio.writelines(text)
-            stringio.seek(0, 0)
-            print(stringio.read())
-
-            file = discord.File(filename="edited_nicknames.txt", fp=stringio)
+                        if changed_users == "":
+                link = await self.mystbin(stringx="No users with special characters in their nicknames could be found.")
+            else:
+                link = await self.mystbin(stringx=f"Found {counter} members:\n{changed_users}")
             time_after = datetime.utcnow()
             difference = time_after - time_before
             difference = round(difference.total_seconds() / 60.0, 1)
             embed = discord.Embed(
                 color=discord.Color.green(),
                 title="Successfully finished!",
-                description=f"Changed {counter} nicknames in {difference} minutes.",
+                description=f"Changed {counter} nicknames in {difference} minutes. Here is a list with all changes: "
+                            f"{link}",
                 timestamp=datetime.utcnow()
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
@@ -109,33 +105,17 @@ contain special characters."""
             difference = time_after - time_before
             difference = round(difference.total_seconds() / 60.0, 1)
             if changed_users == "":
-                changed_users = "No users with special nicknames have been found."
-            stringio = StringIO()
-            text = f'List with all users with special characters in their username/nickname:\nFound {counter_} members:'\
-                   f'\n{changed_users}'.replace("\n", "\r\n")
-            stringio.writelines(text)
-            stringio.seek(0)
-            file = discord.File(filename="edited_nicknames.txt", fp=stringio)
+                link = await self.mystbin(stringx="No users with special characters in their nicknames could be found.")
+            else:
+                link = await self.mystbin(stringx=f"Found {counter} members:\n{changed_users}")
             embed = discord.Embed(
                 color=discord.Color.green(),
                 timestamp=datetime.utcnow(),
                 title="Successfully finished!",
                 description=f"Found {counter_} members with special characters in their nickname in "
-                            f"{difference} minutes.",
+                            f"{difference} minutes.\nHere is the link to the list: {link}",
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
-            if ctx.message.channel.permissions_for(ctx.me).attach_files and output == "channel":
-                await ctx.send(embed=embed, file=file)
-            else:
-                if output == "channel":
-                    await ctx.send(embed=embed)
-                else:
-                    await ctx.message.author.send(embed=embed)
-                try:
-                    await ctx.message.author.send(content="Here is a list with all changes made:", file=file)
-                except Exception:
-                    await ctx.send("I couldn't send the list with the changes. Please make sure I can either attach"
-                                   " files in the channel you use the command in or that I can send you DMs.")
 
     @staticmethod
     def strip_accents(text):
@@ -217,3 +197,10 @@ contain special characters."""
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
             await ctx.send(embed=embed)
             print(error)
+
+    @staticmethod
+    async def mystbin(stringx):
+        async with aiohttp.ClientSession() as session:
+            async with session.post("http://mystb.in/documents", data=stringx.encode('utf-8')) as post:
+                post = await post.json()
+        return f"http://mystb.in/{post['key']}.txt"
