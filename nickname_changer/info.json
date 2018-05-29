@@ -1,0 +1,10 @@
+{
+    "author" : ["Pum"],
+    "bot_version" : [3,0,0],
+    "description" : "Checks nicknames and removes/changes special characters like ü or ◔",
+    "hidden" : false,
+    "install_msg" : "Thank you for adding nickname changer. If any bugs occur please message Pum#0007 on discord.",
+    "requirements" : ["unicodedata", "re", "asyncio", "datetime", "io"],
+    "short" : "Checks nicknames and removes/changes special characters like ü or ◔",
+    "tags" : ["pum", "moderation", "nicknames", "nick", "unicode"]
+}
