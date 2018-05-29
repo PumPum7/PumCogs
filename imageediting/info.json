@@ -1,0 +1,10 @@
+{
+    "author" : ["Pum"],
+    "bot_version" : [3,0,0],
+    "description" : "Edits images using PIL",
+    "hidden" : false,
+    "install_msg" : "Thank you for adding my image editing cog. If any bugs occur please message Pum#0007 on discord.",
+    "short" : "Edits images using PIL",
+    "requirements": ["pillow"]
+    "tags" : ["pum", "editing", "image", "pil"]
+}
