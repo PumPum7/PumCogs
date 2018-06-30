@@ -112,6 +112,7 @@ contain special characters."""
                             f"{difference} minutes.\nHere is the link to the list: {link}",
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
+            await ctx.send(embed=embed)
 
     @staticmethod
     def strip_accents(text):
