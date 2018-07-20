@@ -45,10 +45,9 @@ class Giveaway:
 
     @giveaway.command(name="start")
     @commands.guild_only()
-    @commands.has_role("Giveaways")
-    @commands.bot_has_permissions(add_reactions=True)
+    @commands.has_any_role("Giveaways", "giveaways", "Giveaway", "giveaway")
     async def cmd_giveaway(self, ctx, time: str=None, *, prize: str=None):
-        f"""Start giveaways, use {ctx.prefix}giveaway for more information"""
+        """Start giveaways, use -giveaway for more information"""
         # check the inputs
         winners = re.search("[\d]w", prize)
         if winners is not None:
@@ -61,39 +60,24 @@ class Giveaway:
         channel = re.search(r"<#(?P<channel_id>\d+)>c", prize)
         if channel is not None:
             prize = prize.replace(channel.group(0), "")
-            channel = ctx.guild.get_channel(int(channel.groupdict()["channel_id"]))
+            channel = discord.utils.get(ctx.guild.channels, id=int(channel.groupdict()["channel_id"]))
         else:
             channel = ctx.channel
-        perms = ctx.me.permissions_in(channel)
-        if not perms.add_reactions and perms.embed_links and perms.send_messages:
-            return await ctx.send(content="Please make sure that I have the `send messages`, `embed_links` and"
-                                          " `add_reactions` permission in this channel.", delete_after=15)
+        perms = channel.permissions_for(ctx.me)
+        if not perms.add_reactions and perms.embed_links and perms.send_messages and perms.read_messages:
+            return await ctx.send(content="Please make sure that I have the `send_messages`, `embed_links`, `read_"
+                                          "messages` and `add_reactions` permission in this channel.",
+                                  delete_after=15.0)
         end_time = self.end_time(time)
         if end_time is None:
             return await ctx.send(f"Please follow the format: `{DATE_STRING}`. You can also only use "
-                                  "one/two of the three possible time units.")
+                                  "one/two of the three possible time units.", delete_after=15.0)
         if prize is None:
-            return await ctx.send(f"Please follow the format: `{ctx.prefix}{ctx.command} {DATE_STRING} {'{prize}'}`")
+            return await ctx.send(f"Please follow the format: `{ctx.prefix}{ctx.command} {DATE_STRING} {'{prize}'}`",
+                                  delete_after=15.0)
         # send the giveaway embed
-        giveaway_embed = discord.Embed(
-            color=discord.Color.blue(),
-            title=f"{GIVEAWAY_EMOTE} GIVEAWAY! {GIVEAWAY_EMOTE}",
-            description=f"**Prize:** {prize}\n**Possible winners:** {winners} {'member' if winners == 1 else 'members'}"
-        )
-        giveaway_embed.add_field(
-            name="End date:",
-            value=f"{str(end_time).split('.')[0]}"
-        )
-        giveaway_embed.set_footer(text=f"Click on the {GIVEAWAY_EMOTE} to enter!")
-        msg = await channel.send(embed=giveaway_embed)
-        await msg.add_reaction(f"{GIVEAWAY_EMOTE}")
-        # set up the scheduler
-        scheduler = AsyncIOScheduler()
-        scheduler.configure(timezone=end_time.tzname())
-        scheduler.add_job(func=self.giveaway_embed, trigger="date", run_date=end_time, args=(prize, channel,
-                                                                                             msg.id, winners)
-                          )
-        scheduler.start()
+        # set up the scheduler and send the confirmation message
+        await self.start_giveaway(end_time, prize, channel, winners)
         await ctx.send("Giveaway started!", delete_after=10)
 
     def end_time(self, time):
@@ -112,7 +96,9 @@ class Giveaway:
             new_tm = self.get_time(time, "m")
             if new_tm is not None:
                 minutes = new_tm[0]
-            return datetime.datetime.now() + datetime.timedelta(days=float(days), hours=float(hours),
+            if days is 0 and hours is 0 and minutes is 0:
+                minutes = time
+            return datetime.datetime.utcnow() + datetime.timedelta(days=float(days), hours=float(hours),
                                                                 minutes=float(minutes))
         except Exception as e:
             print(f"An error has occurred: {e}")
@@ -127,31 +113,52 @@ class Giveaway:
         else:
             return None
 
-    async def giveaway_embed(self, prize, channel: discord.TextChannel, msg_id: int, winner_num: int):
-        # creates the embed for the commands
-        message = await channel.get_message(msg_id)
-        if message is None:
+    async def giveaway_embed(self, prize, channel: discord.TextChannel, msg_id: int, winner_num: int, end_date,
+                             giveaway_id=None):
+        try:
+            # creates the embed for the commands
+            message = await channel.get_message(msg_id)
+            if message is None:
+                return await channel.send(content="I couldn't determine a winner.")
+            reactions = message.reactions
+            winners = []
+            await message.remove_reaction(member=message.author, emoji=f"{GIVEAWAY_EMOTE}")
+            for reaction in reactions:
+                if reaction.emoji == f"{GIVEAWAY_EMOTE}":
+                    for i in range(winner_num):
+                        winners.append(choice(await reaction.users().flatten()))
+            if len(winners) < 1:
+                return await message.edit(content="I couldn't determine a winner.")
+            text = await self.text_builder(winners)
+            embed = discord.Embed(
+                color=discord.Color.green(),
+                title=f"{GIVEAWAY_EMOTE} Giveaway! {GIVEAWAY_EMOTE}",
+                description=f"{text} Congratulations!\n"
+            )
+            embed.add_field(
+                name="Prize:",
+                value=prize
+            )
+            if giveaway_id is not None:
+                embed.add_field(name="Information for the winners:", value="The prizes will be send to you soon!")
+            embed.timestamp = end_date
+            embed.set_footer(text="Ended at")
+            await message.edit(embed=embed)
+            if giveaway_id is not None:
+                failed = []
+                prizes = self.db.get_prizes(giveaway_id)
+                for winner in winners:
+                    prize = choice(prizes)
+                    try:
+                        await winner.send(f"Congrats! Here is your prize: {prize}")
+                        prizes.remove(prize)
+                    except Exception: failed.append(winner)
+                if len(failed) > 0:
+                    failed_str = ''.join(e.name + ", " for e in failed)
+                    await channel.send(f"I couldn't send the keys to following users: {failed_str[:-2]}.")
+                    self.db.update_keys(giveaway_id, prizes)
+        except IndexError:
             return await channel.send(content="I couldn't determine a winner.")
-        reactions = message.reactions
-        winners = []
-        await message.remove_reaction(member=message.author, emoji=f"{GIVEAWAY_EMOTE}")
-        for reaction in reactions:
-            if reaction.emoji == f"{GIVEAWAY_EMOTE}":
-                for i in range(winner_num):
-                    winners.append(choice(await reaction.users().flatten()))
-        if len(winners) < 1:
-            return await message.edit(content="I couldn't determine a winner.")
-        text = await self.text_builder(winners)
-        embed = discord.Embed(
-            color=discord.Color.green(),
-            title=f"{GIVEAWAY_EMOTE} Giveaway! {GIVEAWAY_EMOTE}",
-            description=f"{text}! Congratulations!\n"
-        )
-        embed.add_field(
-            name="Prize:",
-            value=prize
-        )
-        await message.edit(embed=embed)
 
     @staticmethod
     async def text_builder(winners: [list, tuple]):
@@ -161,9 +168,12 @@ class Giveaway:
             text = ""
             if winners.count(winners[0]) == len(winners):
                 return f"{winners[0].mention} has won every prize in the giveaway"
+            checked = []
             for member in winners:
-                text += member.mention + ", "
-            text = text[:2] + " have won the giveaway"
+                if member not in checked:
+                    checked.append(member)
+                    wins = winners.count(member)
+                    text += f"{member.mention} has won {wins} {'prizes' if wins > 1 else 'prize'}.\n"
             return text
 
     @cmd_giveaway.error
@@ -172,6 +182,8 @@ class Giveaway:
         if isinstance(error, commands.NoPrivateMessage):
             return
         elif isinstance(error, commands.BotMissingPermissions):
+            return await ctx.send("Please make sure that I can add reactions to my messages and embed links.")
+        elif isinstance(error, discord.errors.Forbidden):
             return await ctx.send("Please make sure that I can add reactions to my messages and embed links.")
         elif isinstance(error, commands.CheckFailure):
             role = discord.utils.get(ctx.guild.roles, name="Giveaways")
@@ -186,10 +198,10 @@ class Giveaway:
 
     @giveaway.command(name="reroll")
     @commands.guild_only()
-    @commands.has_role("Giveaways")
+    @commands.has_any_role("Giveaways", "Giveaway", "giveaways", "giveaways")
     @commands.bot_has_permissions(embed_links=True)
     async def reroll_giveaways(self, ctx, message_id=None):
-        """"Rerolls the giveaway"""
+        """Rerolls the giveaway"""
         channel = ctx.channel
         message = None
         # gets the right message
@@ -220,7 +232,7 @@ class Giveaway:
         if isinstance(error, commands.NoPrivateMessage):
             return
         elif isinstance(error, commands.BotMissingPermissions):
-            return await ctx.send("Please make sure that I have the `embed links` permission.")
+            return await ctx.send("Please make sure that I have the `embed links` permission.", delete_after=15.0)
         elif isinstance(error, commands.CheckFailure):
             role = discord.utils.get(ctx.guild.roles, name="Giveaways")
             if role is not None:
@@ -228,6 +240,52 @@ class Giveaway:
             if ctx.author.permissions_in(ctx.channel).manage_roles or \
                     ctx.author.permissions_in(ctx.channel).manage_server:
                 await ctx.send("Please create a role called `Giveaways` and give it to everyone who should be able"
-                               " to host and reroll giveaways.")
+                               " to host and reroll giveaways.", delete_after=15.0)
             else:
                 return
+
+    async def start_giveaway(self, end_time, prize, channel, winners, donator_note=None, donator=None, giveaway_id=None):
+        # starts a giveaway
+        # creates the embed and sends it
+        giveaway_embed = discord.Embed(
+            color=discord.Color.blue(),
+            title=f"{GIVEAWAY_EMOTE} GIVEAWAY! {GIVEAWAY_EMOTE}",
+            description=f"**Prize:** {prize}\n"
+                        f"**Possible winners:** {winners} {'member' if winners == 1 else 'members'}\n"
+                        f"Click on the {GIVEAWAY_EMOTE} reaction to enter!"
+        )
+        giveaway_embed.timestamp = end_time
+        giveaway_embed.set_footer(text="Ends at")
+        if donator_note is not None:
+            donator = discord.utils.get(channel.guild.members, id=donator)
+            if donator is not None: donator = donator.name
+            giveaway_embed.add_field(
+                name=f"A message by {donator}:",
+                value=donator_note
+            )
+        msg = await channel.send(embed=giveaway_embed)
+        await msg.add_reaction(f"{GIVEAWAY_EMOTE}")
+        # sets up the scheduler
+        scheduler = AsyncIOScheduler()
+        scheduler.configure(timezone=end_time.tzname())
+        scheduler.add_job(func=self.giveaway_embed, trigger="date", run_date=end_time, args=(prize, channel,
+                                                                                             msg.id, winners, end_time,
+                                                                                             giveaway_id)
+                          )
+        scheduler.start()
+        return True
+
+    def get_channel(self, channel_id):
+        return self.bot.get_channel(channel_id)
+
+    @staticmethod
+    async def __error(ctx, error):
+        # global error handler for this cog
+        if isinstance(error, commands.MissingPermissions):
+            return
+        elif isinstance(error, commands.CheckFailure):
+            return
+        elif isinstance(error, commands.BotMissingPermissions):
+            return await ctx.send(f"I am missing a permission for this command. {error}")
+        if isinstance(error, commands.CommandError):
+            return await ctx.send(f"Something didn't go quite right: {error}. Please report this.")
