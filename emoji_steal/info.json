@@ -1,0 +1,10 @@
+{
+    "author" : ["Pum"],
+    "bot_version" : [3,0,0],
+    "description" : "Steal/Upload custom emojis to your server using red bot.",
+    "hidden" : false,
+    "install_msg" : "Thank you for adding my emoji steal cog. If any bugs occur, please message Pum#0007 on discord.",
+    "short" : "Upload custom emojis.",
+    "requirements": ["aiohttp"]
+    "tags" : ["pum", "emojis", "emoji", "steal"]
+}
