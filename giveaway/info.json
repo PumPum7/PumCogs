@@ -5,6 +5,6 @@
     "hidden" : false,
     "install_msg" : "Thank you for adding my giveaway cog. If any bugs occur, please message Pum#0007 on discord.",
     "short" : "Create giveaways using Red Bot.",
-    "requirements": ["apscheduler"]
+    "requirements": ["apscheduler"],
     "tags" : ["pum", "giveaway"]
 }
