@@ -1,4 +1,4 @@
-from red.core import commands
+from redbot.core import commands
 import re
 import discord
 import asyncio
