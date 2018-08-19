@@ -1,5 +1,5 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from red.core import commands
+from redbot.core import commands
 import discord
 import datetime
 from random import choice, randint
