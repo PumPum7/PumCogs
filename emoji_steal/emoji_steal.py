@@ -1,6 +1,6 @@
 import re
 import aiohttp
-from discord.ext import commands
+from red.core import commands
 
 class EmojiSteal:
     def __init__(self, bot):
