@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from red.core import commands
 from io import BytesIO
 from PIL import Image, ImageFilter, ImageDraw, ImageFont, ImageSequence, ImageColor
 import aiohttp
