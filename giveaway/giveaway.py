@@ -2,6 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from redbot.core import commands
 import discord
 import datetime
+from pytz import utc
 from random import choice, randint
 import re
 
@@ -12,6 +13,7 @@ GIVEAWAY_EMOTE = "🎉"
 class Giveaway:
     def __init__(self, bot):
         self.bot = bot
+        self.scheduler = AsyncIOScheduler(timezone=utc)
 
     @commands.group(name="giveaway", invoke_without_command=True)
     async def giveaway(self, ctx):
@@ -266,13 +268,15 @@ class Giveaway:
         msg = await channel.send(embed=giveaway_embed)
         await msg.add_reaction(f"{GIVEAWAY_EMOTE}")
         # sets up the scheduler
-        scheduler = AsyncIOScheduler()
-        scheduler.configure(timezone=end_time.tzname())
-        scheduler.add_job(func=self.giveaway_embed, trigger="date", run_date=end_time, args=(prize, channel,
-                                                                                             msg.id, winners, end_time,
-                                                                                             giveaway_id)
-                          )
-        scheduler.start()
+        scheduler = self.scheduler
+        scheduler.add_job(
+            func=self.giveaway_embed,
+            trigger="date",
+            run_date=end_time,
+            args=(prize, channel, msg.id, winners, end_time, giveaway_id),
+        )
+        if not scheduler.running:
+            scheduler.start()
         return True
 
     def get_channel(self, channel_id):
