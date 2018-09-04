@@ -1,5 +1,5 @@
 import discord
-from red.core import commands
+from redbot.core import commands
 from io import BytesIO
 from PIL import Image, ImageFilter, ImageDraw, ImageFont, ImageSequence, ImageColor
 import aiohttp
