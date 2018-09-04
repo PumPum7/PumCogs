@@ -4,14 +4,16 @@ from redbot.core import commands
 import discord
 
 
+
 class EmojiConverter(commands.Converter):
     async def convert(self, ctx, emoji):
         is_link_ = self.is_link(emoji)
         if not is_link_:
             base_link = "https://cdn.discordapp.com/emojis"
             emoji_id = self.get_emoji_id(emoji)
-            if not emoji_id: return None
-            link = f"{base_link}/{emoji_id}.png"
+            if not emoji_id:
+                return None
+            link = f"{base_link}/{emoji_id.replace('>', '')}.png"
         else:
             link = emoji
         byte_emoji = await self.get_emoji(link)
@@ -20,18 +22,21 @@ class EmojiConverter(commands.Converter):
     @staticmethod
     def get_emoji_id(emoji):
         emoji_parts = emoji.split(":")
-        if emoji_parts[0] == "<a": return False
         emoji_id = emoji_parts[1]
+        if type(emoji_id) != int:
+            emoji_id = emoji_parts[2]
         return emoji_id
 
     @staticmethod
     def is_link(emoji):
         regex = re.compile(
-            r'^(?:http|ftp)s?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+            r"^(?:http|ftp)s?://"  # http:// or https://
+            r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
+            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
+            r"(?::\d+)?"  # optional port
+            r"(?:/?|[/?]\S+)$",
+            re.IGNORECASE,
+        )
         return re.match(regex, emoji)
 
     @staticmethod
