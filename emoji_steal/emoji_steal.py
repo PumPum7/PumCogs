@@ -11,7 +11,7 @@ class EmojiSteal:
     @commands.bot_has_permissions(manage_emojis=True)
     @commands.guild_only()
     @commands.has_permissions(manage_emojis=True)
-    async def create_emote(self, ctx, emoji: discord.PartialEmoji=None, name=None):
+    async def create_emote(self, ctx, emoji: EmojiConverter=None, name=None):
         """Uploads a custom emoji to your server."""
         if emoji is None:
             return await ctx.send("Make sure that you specified a valid emoji. This can either be a link or any other"
