@@ -5,6 +5,6 @@
     "hidden" : false,
     "install_msg" : "Thank you for adding my image editing cog. If any bugs occur please message Pum#0007 on discord.",
     "short" : "Edits images using PIL",
-    "requirements": ["pillow"]
+    "requirements": ["pillow"],
     "tags" : ["pum", "editing", "image", "pil"]
 }
