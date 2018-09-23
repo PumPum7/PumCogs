@@ -5,6 +5,6 @@
     "hidden" : false,
     "install_msg" : "Thank you for adding my emoji steal cog. If any bugs occur, please message Pum#0007 on discord.",
     "short" : "Upload custom emojis.",
-    "requirements": ["aiohttp"]
+    "requirements": ["aiohttp"],
     "tags" : ["pum", "emojis", "emoji", "steal"]
 }
