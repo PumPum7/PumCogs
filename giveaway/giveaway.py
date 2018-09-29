@@ -222,7 +222,9 @@ class Giveaway:
         # goes trough all reactions to find the right one and then randomly chooses a winner
         for reaction in reactions:
             if reaction.emoji == GIVEAWAY_EMOTE:
-                winner = choice(await reaction.users().flatten())
+                reactions = await reaction.users().flatten()
+                reactions.remove(ctx.me)
+                winner = choice(reactions)
         if winner is None:
             return await ctx.send(content="I couldn't determine a winner.", delete_after=10)
         else:
