@@ -45,7 +45,10 @@ class EmojiConverter(commands.Converter):
             async with session.get(link) as result:
                 return await result.read()
 
-class EmojiSteal:
+BaseCog = getattr(commands, "Cog", object)
+
+
+class EmojiSteal(BaseCog):
     def __init__(self, bot):
         self.bot = bot
      
