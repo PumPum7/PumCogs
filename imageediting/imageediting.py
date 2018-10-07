@@ -3,9 +3,10 @@ from redbot.core import commands
 from io import BytesIO
 from PIL import Image, ImageFilter, ImageDraw, ImageFont, ImageSequence, ImageColor
 import aiohttp
+BaseCog = getattr(commands, "Cog", object)
 
 
-class ImageEditing:
+class ImageEditing(BaseCog):
     def __init__(self, bot):
         self.bot = bot
 
