@@ -5,10 +5,10 @@ import asyncio
 from datetime import datetime
 import unicodedata
 import aiohttp
+BaseCog = getattr(commands, "Cog", object)
 
 
-
-class NameChanger:
+class NameChanger(BaseCog):
     def __init__(self, bot):
         self.bot = bot
 
