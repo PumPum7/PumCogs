@@ -8,9 +8,10 @@ import re
 
 DATE_STRING = "{days}d{hours}h{minutes}m"
 GIVEAWAY_EMOTE = "🎉"
+BaseCog = getattr(commands, "Cog", object)
 
 
-class Giveaway:
+class Giveaway(BaseCog):
     def __init__(self, bot):
         self.bot = bot
         self.scheduler = AsyncIOScheduler(timezone=utc)
