@@ -6,11 +6,13 @@ from pytz import utc
 from random import choice, randint
 import re
 
+BaseCog = getattr(commands, "Cog", object)
+
 DATE_STRING = "{days}d{hours}h{minutes}m"
 GIVEAWAY_EMOTE = "🎉"
 
 
-class Giveaway:
+class Giveaway(BaseCog):
     def __init__(self, bot):
         self.bot = bot
         self.scheduler = AsyncIOScheduler(timezone=utc)
