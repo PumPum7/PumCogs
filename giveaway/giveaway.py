@@ -6,6 +6,8 @@ from pytz import utc
 from random import choice, randint
 import re
 
+BaseCog = getattr(commands, "Cog", object)
+
 DATE_STRING = "{days}d{hours}h{minutes}m"
 GIVEAWAY_EMOTE = "🎉"
 BaseCog = getattr(commands, "Cog", object)
