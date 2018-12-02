@@ -193,7 +193,7 @@ class Giveaway(BaseCog):
             if role is not None:
                 return
             if ctx.author.permissions_in(ctx.channel).manage_roles or \
-                    ctx.author.permissions_in(ctx.channel).manage_server:
+                    ctx.author.permissions_in(ctx.channel).manage_guild:
                 await ctx.send("Please create a role called `Giveaways` and give it to everyone who should be able"
                                " to host giveaways.")
             else:
@@ -243,7 +243,7 @@ class Giveaway(BaseCog):
             if role is not None:
                 return
             if ctx.author.permissions_in(ctx.channel).manage_roles or \
-                    ctx.author.permissions_in(ctx.channel).manage_server:
+                    ctx.author.permissions_in(ctx.channel).manage_guild:
                 await ctx.send("Please create a role called `Giveaways` and give it to everyone who should be able"
                                " to host and reroll giveaways.", delete_after=15.0)
             else:
