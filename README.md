@@ -1,6 +1,6 @@
 # PumCogs
 Cogs for Red Discord Bot V3 made by Pum
-
+I am currently not really working on these cogs.
 
 # Note:
 
