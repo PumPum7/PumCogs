@@ -197,7 +197,8 @@ contain special characters."""
 
     @staticmethod
     async def mystbin(stringx):
+        # uses hastebin now as mystb.in had some problems
         async with aiohttp.ClientSession() as session:
-            async with session.post("http://mystb.in/documents", data=stringx.encode('utf-8')) as post:
+            async with session.post("https://hastebin.com/documents", data=stringx.encode('utf-8')) as post:
                 post = await post.json()      
-        return f"http://mystb.in/{post['key']}.txt"
+        return f"https://hastebin.com/{post['key']}.txt"
