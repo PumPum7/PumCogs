@@ -1,14 +1,17 @@
 from redbot.core import commands
-import re
-import discord
-import asyncio
-from datetime import datetime
-import unicodedata
 import aiohttp
-BaseCog = getattr(commands, "Cog", object)
+import asyncio
+import discord
+from datetime import datetime
+import logging
+import re
+import unicodedata
 
 
-class NameChanger(BaseCog):
+log = logging.getLogger("red.pum-cogs.nicknamechanger")
+
+
+class NicknameChanger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -16,12 +19,16 @@ class NameChanger(BaseCog):
     @commands.has_permissions(manage_nicknames=True)
     @commands.guild_only()
     async def nickname_checker(self, ctx, output="channel"):
-        """This will check if someone has special characters in their nickname and will either give you a list of all
-        users who have special characters in their name or will directly change them.
-        Example: っ, !, ◔
         """
+        Checks users for names with bad characters and changes them.
+
+        This will check if someone has special characters in their name and will either give you a list of all
+        users who have special characters in their name or will directly change their nickname if the bot has the
+        Manage Nicknames permission. Example characters that will be changed: っ, !, ◔
+        """
+
         def check(reaction, user):
-            return user == ctx.message.author and str(reaction.emoji) == '👍'
+            return user == ctx.message.author and str(reaction.emoji) == "👍"
 
         server = ctx.message.guild
         membercount = server.member_count
@@ -29,22 +36,22 @@ class NameChanger(BaseCog):
         # checks if the bot has the ability to change nicknames, if yes asks the user if he/she wants to get the list
         # or wants the nicknames directly changed
         if ctx.message.guild.me.guild_permissions.manage_nicknames:
-            msg = await ctx.send("Would you like me to change all nicknames which contain special characters? If yes"
-                                 " please add the `👍` emote as reaction.\nIf you don't want me to do it you don't have"
-                                 " to do anything")
+            msg = await ctx.send(
+                "React with `👍` to change nicknames with special characters.\n"
+                "This action will time out in 15 seconds and a list of users will be generated instead."
+            )
             await msg.add_reaction("👍")
             try:
-                await self.bot.wait_for('reaction_add', timeout=15.0, check=check)
+                await self.bot.wait_for("reaction_add", timeout=15.0, check=check)
                 check_change = True
             except asyncio.TimeoutError:
                 pass
         else:
             check_change = False
         if check_change:
-            text = f"""Okay. I will now check {membercount} members if their nicknames don't 
-contain special characters."""
+            text = f"Now checking {membercount} members."
             if membercount > 100:
-                text = text + f" This might take a while."
+                text = text + " This might take a while."
             await ctx.send(text)
             counter = 0
             changed_users = ""
@@ -53,13 +60,14 @@ contain special characters."""
                 m_nick = member.display_name
                 changed_nick = self.nickname_maker(m_nick)
                 if m_nick != changed_nick:
-                    # checks if a user can change his nickname if he is able to his nick will not be changed
+                    # checks if a user can change his nickname: if he is able to his nick will not be changed
                     if not member.guild_permissions.change_nickname:
                         try:
-                            await member.edit(reason=f"Old name ({m_nick}) contained special characters.",
-                                              nick=changed_nick)
+                            await member.edit(
+                                reason=f"Old name ({m_nick}) contained special characters.", nick=changed_nick
+                            )
                             changed_users = changed_users + f"{member.name}: {m_nick} was changed to {changed_nick}\n"
-                        except commands.MissingPermissions:
+                        except (commands.MissingPermissions, discord.errors.NotFound):
                             pass
                         counter += 1
             if changed_users == "":
@@ -73,8 +81,8 @@ contain special characters."""
                 color=discord.Color.green(),
                 title="Successfully finished!",
                 description=f"Changed {counter} nicknames in {difference} minutes. Here is a list with all changes: "
-                            f"{link}",
-                timestamp=datetime.utcnow()
+                f"{link}",
+                timestamp=datetime.utcnow(),
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
             if output == "channel":
@@ -95,8 +103,10 @@ contain special characters."""
                 changed_nick = self.nickname_maker(m_nick)
                 if m_nick != changed_nick:
                     counter_ += 1
-                    changed_users = changed_users + f"\n{member}({member.id})'s nickname/name ({m_nick}) could be " \
-                                                    f"changed to {changed_nick}"
+                    changed_users = (
+                        changed_users + f"\n{member}({member.id})'s nickname/name ({m_nick}) could be "
+                        f"changed to {changed_nick}"
+                    )
             time_after = datetime.utcnow()
             difference = time_after - time_before
             difference = round(difference.total_seconds() / 60.0, 1)
@@ -109,7 +119,7 @@ contain special characters."""
                 timestamp=datetime.utcnow(),
                 title="Successfully finished!",
                 description=f"Found {counter_} members with special characters in their nickname in "
-                            f"{difference} minutes.\nHere is the link to the list: {link}",
+                f"{difference} minutes.\nHere is the link to the list: {link}",
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
             await ctx.send(embed=embed)
@@ -117,24 +127,24 @@ contain special characters."""
     @staticmethod
     def strip_accents(text):
         try:
-            text = unicodedata.normalize('NFD', text)
-            text = text.encode('ascii', 'ignore')
+            text = unicodedata.normalize("NFD", text)
+            text = text.encode("ascii", "ignore")
             text = text.decode("utf-8")
         except Exception as e:
-            print(e)
+            log.exception(e, exc_info=e)
             pass
         return str(text)
 
     def nickname_maker(self, old_nick):
         old_nick = self.strip_accents(old_nick)
-        changed_nick = re.sub('[^a-zA-Z0-9 \n.]', '', old_nick)
+        changed_nick = re.sub("[^a-zA-Z0-9 \n.]", "", old_nick)
         if len(changed_nick.replace(" ", "")) <= 1:
             changed_nick = "Request a new nickname"
         return changed_nick
 
     @nickname_checker.error
     async def nickname_error(self, ctx, error):
-    # error handler
+        # error handler
         if isinstance(error, commands.MissingPermissions):
             return
         elif isinstance(error, commands.NoPrivateMessage):
@@ -143,37 +153,36 @@ contain special characters."""
             embed = discord.Embed(
                 color=discord.Color.red(),
                 title="Something didn't go quite right...",
-                description="I will report this error."
+                description="I will report this error.",
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
             await ctx.send(embed=embed)
-            print(error)
+            log.exception(error, exc_info=error)
 
     @commands.command(name="setnick")
     @commands.guild_only()
     @commands.has_permissions(manage_nicknames=True)
     @commands.bot_has_permissions(manage_nicknames=True)
-    async def setnick_cmd(self, ctx, user: discord.Member=None, *, nickname: str=None):
+    async def setnick_cmd(self, ctx, user: discord.Member = None, *, nickname: str = None):
         if nickname is None or user is None and len(nickname) >= 2:
             embed = discord.Embed(
                 color=discord.Color.red(),
                 title="An error occurred.",
                 description=f"Please follow the format: `{ctx.prefix}setnick {'user'} {'new nickname'}`.\n"
-                            f"If you followed the format please make sure that the new nickname is at least two chara"
-                            f"cters long."
+                f"If you followed the format please make sure that the new nickname is at least two characters long.",
             )
             return await ctx.send(embed=embed)
         await user.edit(nick=nickname, reason=f"Nickname edit by {ctx.message.author.name} ({ctx.message.author.id})")
         embed = discord.Embed(
             color=discord.Color.green(),
             title=f"Successfully changed {user}'s nickname.",
-            description=f"New nickname: {nickname}\nOld nickname: {user.display_name}"
+            description=f"New nickname: {nickname}\nOld nickname: {user.display_name}",
         )
         await ctx.send(embed=embed)
 
     @setnick_cmd.error
     async def setnick_error(self, ctx, error):
-    # error handler
+        # error handler
         if isinstance(error, commands.CheckFailure):
             return
         elif isinstance(error, commands.NoPrivateMessage):
@@ -182,23 +191,20 @@ contain special characters."""
             embed = discord.Embed(
                 color=discord.Color.red(),
                 title="I am missing a necessary permission.",
-                description="Please make sure I have the manage nicknames permission."
+                description="Please make sure I have the manage nicknames permission.",
             )
             await ctx.send(embed=embed)
         elif isinstance(error, commands.CommandError):
             embed = discord.Embed(
-                color=discord.Color.red(),
-                title="Something didn't go quite right...",
-                description="I will report this error."
+                color=discord.Color.red(), title="Something didn't go quite right...", description=" "
             )
             embed.set_author(name=f"{ctx.message.author}", icon_url=f"{ctx.message.author.avatar_url}")
             await ctx.send(embed=embed)
-            print(error)
+            log.exception(error, exc_info=error)
 
     @staticmethod
     async def mystbin(stringx):
-        # uses hastebin now as mystb.in had some problems
         async with aiohttp.ClientSession() as session:
-            async with session.post("https://hastebin.com/documents", data=stringx.encode('utf-8')) as post:
-                post = await post.json()      
-        return f"https://hastebin.com/{post['key']}.txt"
+            async with session.post("https://mystb.in/documents", data=stringx.encode("utf-8")) as post:
+                post = await post.json()
+        return f"http://mystb.in/{post['key']}.txt"
