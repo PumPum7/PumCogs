@@ -1,4 +1,4 @@
-from .nicknamechanger import NameChanger
+from .nicknamechanger import NicknameChanger
 
 def setup(bot):
-  bot.add_cog(NameChanger(bot))
+  bot.add_cog(NicknameChanger(bot))
