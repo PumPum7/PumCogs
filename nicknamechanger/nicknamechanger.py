@@ -91,7 +91,7 @@ class NicknameChanger(commands.Cog):
                 if output == "channel":
                     await ctx.send(embed=embed)
                 else:
-                    await ctx.message.author(embed=embed)
+                    await ctx.message.author.send(embed=embed)
         else:
             # only returns the list
             await ctx.send("Okay. I will create a file now with all users who have special characters in their name.")
